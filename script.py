@@ -1,15 +1,13 @@
 # import xmlrpclib
 import xmlrpc
 import xmlrpc.client
-
+import mysql.connector
 
 def login():
     # common = xmlrpclib.ServerProxy('{}/xmlrpc/2/common'.format(url))
     common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
     res = common.version()
-    print(res)
     uid = common.authenticate(db, username, password, {})
-    print("uid:", uid)
     return uid
 
 def calling_methods(uid, models):
@@ -136,10 +134,34 @@ def report_printing(uid, models):
                                   invoice_ids)
     return result['result'].decode('base64')
 
+def products(uid, models):
+    ids = models.execute_kw(db, uid, password, 'res.partner', 'search', [[]], {'limit': 10})
+    
+    return models.execute_kw(db, uid, password,
+                             'res.partner', 'read', [ids],
+                             {'fields': ['name', 'country_id', 'comment']})
+
+def create_table(cursor):
+    query = """CREATE TABLE partners (
+        id int not null auto_increment,
+        name varchar(255) not null,
+        country_id varchar(255) not null,
+        comment varchar(255) not null,
+        primary key (id)
+    )"""
+    cursor.execute(query)
+
+def insert(cursor, data):
+    values = list(map(lambda x: (str(x['name']), str(x['country_id']), str(x['comment'])), data))
+    query = 'insert into partners (name, country_id, comment) values (%s, %s, %s)'
+    cursor.executemany(query, values)
+    print("inserted")
+    mysqldb.commit()
+    print("committed")
+
 def main():
-    # Accedemos a Odoo
-    print("login")
     uid = login()
+    print("uid:", uid)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 
     print("calling_methods")
@@ -176,7 +198,15 @@ def main():
     print("inspection_and_introspection")
     print(inspection_and_introspection(uid, models))
 
+def mysqlf():
+    uid = login()
+    print("uid:", uid)
+    models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 
+    cursor = mysqldb.cursor()
+    data = products(uid, models)
+    #create_table(cursor)
+    insert(cursor, data)
 
 if __name__ == '__main__':
     # info = xmlrpclib.ServerProxy('https://demo.odoo.com/start').start()
@@ -189,6 +219,14 @@ if __name__ == '__main__':
     username = 'zhong@ucm.es'
     password = "123456"
 
+    mysqldb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        passwd="",
+        database="sc"
+    )
+
     main()
+    mysqlf()
 
     print('End')
