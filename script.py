@@ -9,25 +9,20 @@ def login():
     res = common.version()
     print(res)
     uid = common.authenticate(db, username, password, {})
-    print(uid)
+    print("uid:", uid)
     return uid
 
+def calling_methods(uid, models):
+    return models.execute_kw(db, uid, password, 'res.partner', 'check_access_rights', ['read'], {'raise_exception' : False})
 
-def query(uid, models):
-    res = models.execute_kw(db, uid, password, 'res.partner', 'search', [[['is_company', '=', True], ['customer', '=', True]]])
-    print(res)
-    a = models.execute_kw(db, uid, password, 'res.partner', 'read', [res], {'fields': ['name', 'country_id', 'comment']})
-    print(a)
-
-
-def list_recors(uid, models):
-    """
-    models.execute_kw(db, uid, password, 'res.partner', 'search',
+def list_records(uid, models):
+    return models.execute_kw(db, uid, password, 'res.partner', 'search',
                       [[
                         ['is_company', '=', True],
                         ['customer', '=', True]
                       ]])
-    """
+
+def pagination(uid, models):
     return models.execute_kw(db, uid, password, 'res.partner',
                              'search',
                              [[
@@ -36,7 +31,6 @@ def list_recors(uid, models):
                              ]],
                              {'offset': 10, 'limit': 5})
 
-
 def count_records(uid, models):
     return models.execute_kw(db, uid, password,
                              'res.partner', 'search_count',
@@ -44,7 +38,6 @@ def count_records(uid, models):
                                ['is_company', '=', True],
                                ['customer', '=', True]
                              ]])
-
 
 def read_records(uid, models):
     ids = models.execute_kw(db, uid, password,
@@ -62,12 +55,10 @@ def read_records(uid, models):
                              'res.partner', 'read', [ids],
                              {'fields': ['name', 'country_id', 'comment']})
 
-
 def listing_records_fields(uid, models):
     return models.execute_kw(db, uid, password, 'res.partner',
                              'fields_get', [],
                              {'attributes': ['string', 'help', 'type']})
-
 
 def search_and_read(uid, models):
     return models.execute_kw(db, uid, password,
@@ -81,15 +72,13 @@ def search_and_read(uid, models):
                                 'limit': 5
                                 })
 
-
 def create_records(uid, models):
     id = models.execute_kw(db, uid, password,
                            'res.partner', 'create',
                            [{'name': "New Partner"}])
     return id
 
-
-def update_records(uid, models):
+def update_records(uid, models, id):
     models.execute_kw(db, uid, password, 'res.partner',
                       'write',
                       [
@@ -99,24 +88,20 @@ def update_records(uid, models):
     return models.execute_kw(db, uid, password,
                              'res.partner', 'name_get', [[id]])
 
-
-def delete_records(uid, models):
+def delete_records(uid, models, id):
     models.execute_kw(db, uid, password, 'res.partner', 'unlink', [[id]])
     # check if the deleted record is still in the database
     return models.execute_kw(db, uid, password,
                              'res.partner', 'search', [[['id', '=', id]]])
 
-
 def inspection_and_introspection(uid, models):
+  if (False) :
     models.execute_kw(db, uid, password, 'ir.model', 'create', [{
         'name': "Custom Model",
         'model': "x_custom_model",
         'state': 'manual',
     }])
-    return models.execute_kw(db, uid, password, 'x_custom_model',
-                             'fields_get', [],
-                             {'attributes': ['string', 'help', 'type']})
-
+  return models.execute_kw(db, uid, password, 'x_custom_model', 'fields_get', [], {'attributes': ['string', 'help', 'type']})
 
 def workflow_manipulations(uid, models):
     client = models.execute_kw(db, uid, password, 'res.partner', 'search_read',
@@ -139,7 +124,6 @@ def workflow_manipulations(uid, models):
     return models.exec_workflow(db, uid, password, 'account.invoice',
                                 'invoice_open', invoice_id)
 
-
 def report_printing(uid, models):
     invoice_ids = models.execute_kw(db, uid, password, 'account.invoice',
                                     'search',
@@ -152,12 +136,46 @@ def report_printing(uid, models):
                                   invoice_ids)
     return result['result'].decode('base64')
 
-
 def main():
     # Accedemos a Odoo
+    print("login")
     uid = login()
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
-    query(uid, models)
+
+    print("calling_methods")
+    print(calling_methods(uid, models))
+
+    print("list_records")
+    print(list_records(uid, models))
+
+    print("pagination")
+    print(pagination(uid, models))
+
+    print("count_records")
+    print(count_records(uid, models))
+
+    print("read_records")
+    print(read_records(uid, models))
+
+    print("listing_records_fields")
+    print(listing_records_fields(uid, models))
+
+    print("search_and_read")
+    print(search_and_read(uid, models))
+
+    print("create_records")
+    id = create_records(uid, models)
+    print(id)
+
+    print("update_records")
+    print(update_records(uid, models, id))
+
+    print("delete_records")
+    print(delete_records(uid, models, id))
+
+    print("inspection_and_introspection")
+    print(inspection_and_introspection(uid, models))
+
 
 
 if __name__ == '__main__':
@@ -173,4 +191,4 @@ if __name__ == '__main__':
 
     main()
 
-    print('Fin')
+    print('End')
